@@ -19,7 +19,15 @@ export default function BusinessBasics() {
     phoneCode: '',
     phoneNumber: '',
   });
+  const [businessId, setBusinessId] = useState('');
   const [availableCities, setAvailableCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    const storedBusinessId = sessionStorage.getItem('onboarding_businessId');
+    if (storedBusinessId) {
+      setBusinessId(storedBusinessId);
+    }
+  }, []);
 
   useEffect(() => {
     if (formData.country) {
@@ -86,6 +94,15 @@ export default function BusinessBasics() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="businessId">Business ID</Label>
+              <Input
+                id="businessId"
+                value={businessId || 'Will be generated after you complete setup'}
+                disabled
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="businessName">Business Name <span className="text-destructive">*</span></Label>
               <Input

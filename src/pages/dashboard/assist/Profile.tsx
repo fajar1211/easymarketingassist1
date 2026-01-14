@@ -172,6 +172,7 @@ export default function AssistProfile() {
         .from('profiles')
         .update({
           name: profile.name,
+          email: profile.email,
           phone: fullPhone,
           bio: profile.bio,
           portfolio_url: profile.portfolio_url,
@@ -352,15 +353,18 @@ export default function AssistProfile() {
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input value={profile.email} disabled className="bg-muted" />
+              {isEditing ? (
+                <Input
+                  value={profile.email}
+                  onChange={(e) => setProfile((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              ) : (
+                <p className="py-2 font-medium">{profile.email || '-'}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Full Name</Label>
-              {isEditing ? (
-                <Input value={profile.name} onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))} />
-              ) : (
-                <p className="py-2 font-medium">{profile.name || '-'}</p>
-              )}
+              <Input value={profile.name} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">
               <Label>Phone</Label>

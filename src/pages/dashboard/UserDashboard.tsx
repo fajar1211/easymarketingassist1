@@ -100,8 +100,8 @@ export default function UserDashboard() {
                         <NavLink
                           to={item.url}
                           end={item.url === '/dashboard/user'}
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent/80 hover:text-foreground hover-scale transition-colors"
-                          activeClassName="bg-sidebar-accent text-sidebar-primary shadow-sm"
+                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground/80 hover:bg-primary/10 hover:text-primary hover-scale transition-colors"
+                          activeClassName="bg-primary text-primary-foreground shadow-sm"
                         >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
@@ -114,7 +114,7 @@ export default function UserDashboard() {
             </SidebarGroup>
           </SidebarContent>
           <div className="mt-auto p-4 border-t">
-            <Button variant="ghost" className="w-full justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors" onClick={signOut}>
+            <Button variant="ghost" className="w-full justify-start text-sm text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors" onClick={signOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>

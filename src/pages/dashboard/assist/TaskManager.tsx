@@ -822,36 +822,39 @@ const fetchAssistUsers = async () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Upload File</Label>
-              <div className="border-2 border-dashed rounded-lg p-6">
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="task-file-upload"
-                  ref={fileInputRef}
-                />
-                <label 
-                  htmlFor="task-file-upload" 
-                  className="flex flex-col items-center cursor-pointer"
-                >
-                  <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+              <Label className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Upload File
+              </Label>
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadedFile ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm truncate">{uploadedFile.name}</span>
+                    <X
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadedFile(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
                   <span className="text-sm text-muted-foreground">Click to upload file</span>
-                </label>
+                )}
               </div>
-              {uploadedFile && (
-                <div className="flex items-center justify-between bg-muted/50 p-2 rounded mt-2">
-                  <span className="text-sm truncate">{uploadedFile.name}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6"
-                    onClick={() => setUploadedFile(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              <input
+                ref={fileInputRef}
+                id="task-file-upload"
+                type="file"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -939,11 +942,10 @@ const fetchAssistUsers = async () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Task ID</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Business Name</TableHead>
+                  <TableHead>Task Title</TableHead>
+                  <TableHead>Assignee</TableHead>
                   <TableHead>Deadline</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -955,16 +957,9 @@ const fetchAssistUsers = async () => {
                       <TableCell className="font-mono">{getTaskId(task)}</TableCell>
                       <TableCell className="font-medium">{getClientName(task.user_id)}</TableCell>
                       <TableCell className="font-medium">{task.title}</TableCell>
-                      <TableCell>
-                        {task.type ? typeLabels[task.type] : '-'}
-                      </TableCell>
+                      <TableCell>{getAssigneeName(task.assigned_to)}</TableCell>
                       <TableCell>
                         {task.deadline ? new Date(task.deadline).toLocaleDateString() : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={config.className}>
-                          {config.label}
-                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button 

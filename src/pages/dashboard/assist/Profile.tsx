@@ -169,15 +169,12 @@ export default function AssistProfile() {
           name: profile.name,
           email: profile.email,
           phone: fullPhone,
-          bio: profile.bio,
           portfolio_url: profile.portfolio_url,
           skills: profile.skills,
-          experience: profile.experience,
           linkedin_url: profile.linkedin_url,
           twitter_url: profile.twitter_url,
           country: profile.location,
           city: profile.city,
-          specialization: profile.specialization,
           avatar_url: profile.avatar_url,
           social_links: profile.social_links, // Save social media links
         } as any)

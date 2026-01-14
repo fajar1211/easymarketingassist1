@@ -28,6 +28,7 @@ interface BusinessData {
   first_name: string;
   last_name: string;
   social_media_links: SocialMediaLink[];
+  businessId: string;
 }
 
 interface KnowledgeBaseData {
@@ -79,6 +80,7 @@ export default function MyBusiness() {
     first_name: '',
     last_name: '',
     social_media_links: [],
+    businessId: '',
   });
   const [kbData, setKbData] = useState<KnowledgeBaseData>({
     bkb: '',
@@ -203,6 +205,9 @@ export default function MyBusiness() {
         const firstName = syncFirstName || nameParts[0] || '';
         const lastName = syncLastName || nameParts.slice(1).join(' ') || '';
 
+        const businessNumber = (data as any).business_number as number | null;
+        const businessId = businessNumber ? `B${businessNumber.toString().padStart(5, '0')}` : '';
+
         const dbFormData: BusinessData = {
           name: (data as any).business_name || '',
           business_type: (data as any).business_type || '',
@@ -217,6 +222,7 @@ export default function MyBusiness() {
           first_name: firstName,
           last_name: lastName,
           social_media_links: socialLinks,
+          businessId,
         };
         
         setOriginalFormData(dbFormData);
@@ -264,6 +270,7 @@ export default function MyBusiness() {
           email: user.email || '',
           first_name: syncFirstName || '',
           last_name: syncLastName || '',
+          businessId: formData.businessId || '',
         };
         setFormData(defaultData);
         setOriginalFormData(defaultData);
@@ -564,6 +571,15 @@ export default function MyBusiness() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="business_id">Business ID</Label>
+              <Input
+                id="business_id"
+                value={formData.businessId || 'Will be generated after onboarding'}
+                disabled
+              />
+            </div>
+
             {/* Contact Information */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">

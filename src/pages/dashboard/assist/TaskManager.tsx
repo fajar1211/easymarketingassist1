@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -486,11 +487,14 @@ const fetchAssistUsers = async () => {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Task Details */}
+          {/* Task Info */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>{selectedTask.title}</CardTitle>
+                <div>
+                  <CardTitle>Task Info</CardTitle>
+                  <CardDescription>Update the core details of this task</CardDescription>
+                </div>
                 <Badge variant="outline" className={config.className}>
                   {config.label}
                 </Badge>
@@ -501,9 +505,21 @@ const fetchAssistUsers = async () => {
                 <Label className="text-muted-foreground">Task ID</Label>
                 <Input value={getTaskId(selectedTask)} disabled className="bg-muted font-mono" />
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Task Title</Label>
+                <Input
+                  value={selectedTask.title}
+                  onChange={(e) => {
+                    const updated = { ...selectedTask, title: e.target.value };
+                    setSelectedTask(updated);
+                  }}
+                />
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label className="text-muted-foreground">Client</Label>
+                  <Label className="text-muted-foreground">Business Name</Label>
                   <p className="font-medium">{getClientName(selectedTask.user_id)}</p>
                 </div>
                 <div>
@@ -512,51 +528,195 @@ const fetchAssistUsers = async () => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Type</Label>
-                  <p className="font-medium">{selectedTask.type ? typeLabels[selectedTask.type] : '-'}</p>
+                  <Select
+                    value={selectedTask.type || ''}
+                    onValueChange={(value) => {
+                      const updated = { ...selectedTask, type: value as Task['type'], platform: value === 'social_media' ? selectedTask.platform : null };
+                      setSelectedTask(updated);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="blog">Blog</SelectItem>
+                      <SelectItem value="social_media">Social Media</SelectItem>
+                      <SelectItem value="email_marketing">Email Marketing</SelectItem>
+                      <SelectItem value="ads">Ads</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                {selectedTask.platform && (
+                {selectedTask.type === 'social_media' && (
                   <div>
                     <Label className="text-muted-foreground">Platform</Label>
-                    <p className="font-medium">{platformLabels[selectedTask.platform]}</p>
+                    <Select
+                      value={selectedTask.platform || ''}
+                      onValueChange={(value) => {
+                        const updated = { ...selectedTask, platform: value as Task['platform'] };
+                        setSelectedTask(updated);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="facebook">Facebook</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
+                        <SelectItem value="x">X (Twitter)</SelectItem>
+                        <SelectItem value="threads">Threads</SelectItem>
+                        <SelectItem value="linkedin">LinkedIn</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
                 <div>
                   <Label className="text-muted-foreground">Deadline</Label>
-                  <p className="font-medium">
-                    {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString() : '-'}
-                  </p>
+                  <Input
+                    type="date"
+                    value={selectedTask.deadline ? selectedTask.deadline.split('T')[0] : ''}
+                    onChange={(e) => {
+                      const updated = { ...selectedTask, deadline: e.target.value || null } as Task;
+                      setSelectedTask(updated);
+                    }}
+                  />
                 </div>
               </div>
-              {selectedTask.description && (
-                <div>
-                  <Label className="text-muted-foreground">Description</Label>
-                  <p className="mt-1">{selectedTask.description}</p>
-                </div>
-              )}
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Description</Label>
+                <Textarea
+                  value={selectedTask.description || ''}
+                  onChange={(e) => {
+                    const updated = { ...selectedTask, description: e.target.value };
+                    setSelectedTask(updated);
+                  }}
+                  rows={4}
+                />
+              </div>
+
               {selectedTask.file_url && (
                 <div>
-                  <Label className="text-muted-foreground">Attachment</Label>
-                  <a 
-                    href={selectedTask.file_url} 
-                    target="_blank" 
+                  <Label className="text-muted-foreground">File</Label>
+                  <a
+                    href={selectedTask.file_url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="block mt-1 text-primary hover:underline"
                   >
-                    View Attachment
+                    View File
                   </a>
                 </div>
               )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from('tasks')
+                        .update({
+                          title: selectedTask.title,
+                          description: selectedTask.description,
+                          type: selectedTask.type,
+                          platform: selectedTask.type === 'social_media' ? selectedTask.platform : null,
+                          deadline: selectedTask.deadline,
+                        })
+                        .eq('id', selectedTask.id);
+
+                      if (error) throw error;
+
+                      toast({
+                        title: 'Task Updated',
+                        description: 'Task information has been updated.',
+                      });
+                    } catch (error: any) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: error.message || 'Failed to update task.',
+                      });
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Work Log Form */}
+          {/* Work Log */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Work Log
-              </CardTitle>
-              <CardDescription>Track your progress on this task</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Work Log
+                </CardTitle>
+                <CardDescription>Track your progress on this task</CardDescription>
+              </div>
+              {workLogs.length > 0 && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      View History
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Work Log History</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-80 overflow-y-auto mt-2">
+                      {workLogs.map((log) => (
+                        <div key={log.id} className="p-3 bg-muted rounded-lg text-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <Badge variant="outline">{log.status.replace(/_/g, ' ')}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(log.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          {log.time_spent && (
+                            <p className="text-muted-foreground">Time: {log.time_spent} min</p>
+                          )}
+                          {log.work_description && <p className="mt-1">{log.work_description}</p>}
+                          <div className="flex gap-2 mt-2">
+                            {log.shared_url && (
+                              <a
+                                href={log.shared_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline text-xs"
+                              >
+                                View URL
+                              </a>
+                            )}
+                            {log.file_url && (
+                              <a
+                                href={log.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline text-xs"
+                              >
+                                View File
+                              </a>
+                            )}
+                            {log.screenshot_url && (
+                              <a
+                                href={log.screenshot_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline text-xs"
+                              >
+                                View Screenshot
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -667,44 +827,6 @@ const fetchAssistUsers = async () => {
               <Button onClick={handleSaveWorkLog} disabled={savingWorkLog} className="w-full">
                 {savingWorkLog ? 'Saving...' : 'Add Work Log'}
               </Button>
-
-              {/* Work Log History */}
-              {workLogs.length > 0 && (
-                <div className="mt-6 space-y-3">
-                  <h4 className="font-medium">Work Log History</h4>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {workLogs.map((log) => (
-                      <div key={log.id} className="p-3 bg-muted rounded-lg text-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <Badge variant="outline">{log.status.replace(/_/g, ' ')}</Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(log.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        {log.time_spent && <p className="text-muted-foreground">Time: {log.time_spent} min</p>}
-                        {log.work_description && <p className="mt-1">{log.work_description}</p>}
-                        <div className="flex gap-2 mt-2">
-                          {log.shared_url && (
-                            <a href={log.shared_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
-                              View URL
-                            </a>
-                          )}
-                          {log.file_url && (
-                            <a href={log.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
-                              View File
-                            </a>
-                          )}
-                          {log.screenshot_url && (
-                            <a href={log.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
-                              View Screenshot
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -736,7 +858,7 @@ const fetchAssistUsers = async () => {
               <div className="space-y-2">
                 <Label>Task ID</Label>
                 <Input value={`T${String(nextTaskNumber).padStart(5, '0')}`} disabled className="bg-muted font-mono" />
-                <p className="text-xs text-muted-foreground">Auto-generated task ID starting from T00100</p>
+                <p className="text-xs text-muted-foreground">Auto-generated task ID</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="client">Client * (Business Name)</Label>

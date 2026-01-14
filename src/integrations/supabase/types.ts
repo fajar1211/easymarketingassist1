@@ -19,6 +19,7 @@ export type Database = {
           bkb_content: string | null
           brand_expert_content: string | null
           business_name: string | null
+          business_number: number | null
           business_type: string | null
           city: string | null
           country: string | null
@@ -47,6 +48,7 @@ export type Database = {
           bkb_content?: string | null
           brand_expert_content?: string | null
           business_name?: string | null
+          business_number?: number | null
           business_type?: string | null
           city?: string | null
           country?: string | null
@@ -75,6 +77,7 @@ export type Database = {
           bkb_content?: string | null
           brand_expert_content?: string | null
           business_name?: string | null
+          business_number?: number | null
           business_type?: string | null
           city?: string | null
           country?: string | null

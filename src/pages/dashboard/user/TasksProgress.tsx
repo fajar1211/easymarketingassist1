@@ -85,6 +85,7 @@ export default function TasksProgress() {
   const [assists, setAssists] = useState<AssistAccount[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [nextTaskNumber, setNextTaskNumber] = useState(100);
+  const [businessName, setBusinessName] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -101,6 +102,18 @@ export default function TasksProgress() {
     const fetchData = async () => {
       if (!user) return;
 
+      // Fetch business name for current user
+      const { data: businessData } = await supabase
+        .from('businesses')
+        .select('business_name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+
+      if (businessData?.business_name) {
+        setBusinessName(businessData.business_name);
+      }
+
       // Fetch tasks
       const { data: tasksData } = await supabase
         .from('tasks')
@@ -111,8 +124,10 @@ export default function TasksProgress() {
       if (tasksData) {
         setTasks(tasksData as Task[]);
         // Calculate next task number
-        const maxNum = tasksData.reduce((max, t) => 
-          Math.max(max, t.task_number || 0), 99);
+        const maxNum = tasksData.reduce(
+          (max, t) => Math.max(max, t.task_number || 0),
+          99
+        );
         setNextTaskNumber(maxNum + 1);
       }
 
@@ -123,7 +138,7 @@ export default function TasksProgress() {
         .eq('role', 'assist');
 
       if (roles) {
-        const assistIds = roles.map(r => r.user_id);
+        const assistIds = roles.map((r) => r.user_id);
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, name')
@@ -132,7 +147,7 @@ export default function TasksProgress() {
 
         if (profiles) {
           // Sort by full name
-          const sortedAssists = profiles.sort((a, b) => 
+          const sortedAssists = profiles.sort((a, b) =>
             (a.name || '').localeCompare(b.name || '')
           );
           setAssists(sortedAssists);
@@ -394,12 +409,12 @@ export default function TasksProgress() {
             <CardDescription>Fill in the details for your new task</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Task ID</Label>
-                <Input 
-                  value={formatTaskId(nextTaskNumber)} 
-                  disabled 
+                <Input
+                  value={formatTaskId(nextTaskNumber)}
+                  disabled
                   className="bg-muted font-mono"
                 />
                 <p className="text-xs text-muted-foreground">Auto-generated ID</p>
@@ -410,7 +425,18 @@ export default function TasksProgress() {
                   id="title"
                   placeholder="Enter task title..."
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, title: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Business Name</Label>
+                <Input
+                  value={businessName || ''}
+                  placeholder="Your business name"
+                  disabled
+                  className="bg-muted"
                 />
               </div>
             </div>

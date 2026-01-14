@@ -37,7 +37,6 @@ interface AssistContact {
   name: string;
   email: string;
   avatar_url: string | null;
-  specialization: string | null;
 }
 
 export default function Messages() {
@@ -67,7 +66,7 @@ export default function Messages() {
         const assistIds = roles.map(r => r.user_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, name, email, avatar_url, specialization')
+          .select('id, name, email, avatar_url')
           .in('id', assistIds);
 
         if (profiles) {
@@ -290,7 +289,7 @@ export default function Messages() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground truncate">{assist.name}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {assist.specialization || assist.email}
+                        {assist.email}
                       </p>
                     </div>
                   </div>
@@ -316,7 +315,7 @@ export default function Messages() {
                     <div>
                       <CardTitle className="text-lg">{selectedAssist.name}</CardTitle>
                       <p className="text-xs text-muted-foreground">
-                        {selectedAssist.specialization || 'Marketing Assist'}
+                        Marketing Assist
                       </p>
                     </div>
                   </div>
@@ -343,133 +342,141 @@ export default function Messages() {
                   </AlertDialog>
                 </div>
               </CardHeader>
+
               <CardContent className="flex-1 flex flex-col p-0">
-                {/* Messages Area */}
-                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                      <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="font-medium text-foreground">No messages yet</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Start a conversation with {selectedAssist.name}
-                      </p>
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                      <MessageCircle className="h-10 w-10 mb-2" />
+                      <p className="text-sm">No messages yet. Start the conversation!</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {messages.map((message) => (
+                    messages.map((msg) => {
+                      const isOwn = msg.sender_id === user?.id;
+                      const isFileOnly = msg.file_url && (!msg.content || msg.content.startsWith('📎 '));
+                      return (
                         <div
-                          key={message.id}
+                          key={msg.id}
                           className={cn(
-                            "flex",
-                            message.sender_id === user?.id ? "justify-end" : "justify-start"
+                            "flex gap-2",
+                            isOwn ? 'justify-end' : 'justify-start'
                           )}
                         >
+                          {!isOwn && (
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={selectedAssist.avatar_url || undefined} />
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {selectedAssist.name?.charAt(0)?.toUpperCase() || 'A'}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
                           <div
                             className={cn(
-                              "max-w-[70%] rounded-lg px-4 py-2",
-                              message.sender_id === user?.id
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
+                              "max-w-[75%] rounded-2xl px-4 py-2 text-sm shadow-sm",
+                              isOwn
+                                ? 'bg-primary text-primary-foreground rounded-br-sm'
+                                : 'bg-muted text-foreground rounded-bl-sm'
                             )}
                           >
-                            <p className="text-sm">{message.content}</p>
-                            {message.file_url && (
-                              <a
-                                href={message.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download
-                                className={cn(
-                                  "flex items-center gap-1 text-xs mt-2 underline",
-                                  message.sender_id === user?.id
-                                    ? "text-primary-foreground/80"
-                                    : "text-primary"
-                                )}
-                              >
-                                <Download className="h-3 w-3" />
-                                {getFileName(message.file_url)}
-                              </a>
+                            {msg.content && (
+                              <p className="whitespace-pre-wrap break-words mb-1">{msg.content}</p>
                             )}
-                            <p
-                              className={cn(
-                                "text-xs mt-1",
-                                message.sender_id === user?.id
-                                  ? "text-primary-foreground/70"
-                                  : "text-muted-foreground"
-                              )}
-                            >
-                              {new Date(message.created_at).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
+                            {msg.file_url && (
+                              <div className={cn(
+                                "mt-1 flex items-center gap-2 rounded-md border px-3 py-2 text-xs",
+                                isOwn ? 'border-primary/40 bg-primary/10' : 'border-muted-foreground/10 bg-background/60'
+                              )}>
+                                <Paperclip className="h-4 w-4" />
+                                <span className="truncate flex-1">{getFileName(msg.file_url)}</span>
+                                <a
+                                  href={msg.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  Download
+                                </a>
+                              </div>
+                            )}
+                            <span className={cn(
+                              "mt-1 block text-[10px] opacity-70 text-right",
+                              isOwn ? 'text-primary-foreground' : 'text-muted-foreground'
+                            )}>
+                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
                         </div>
-                      ))}
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Message Input */}
+                <div className="border-t p-3 space-y-2 bg-background/60 backdrop-blur">
+                  {uploadedFile && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/60 rounded-md px-3 py-1">
+                      <span className="flex items-center gap-2">
+                        <Paperclip className="h-3 w-3" />
+                        {uploadedFile.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFile(null)}
+                        className="inline-flex items-center justify-center rounded-full hover:bg-muted p-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   )}
-                </ScrollArea>
-
-                {/* Input Area */}
-                <div className="p-4 border-t space-y-2">
-                  {uploadedFile && (
-                    <div className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
-                      <Paperclip className="h-4 w-4" />
-                      <span className="flex-1 truncate">{uploadedFile.name}</span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setUploadedFile(null)}>
-                        <X className="h-3 w-3" />
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 flex flex-col gap-2">
+                      <Textarea
+                        placeholder="Type your message..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        rows={2}
+                        className="resize-none"
+                      />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Files are stored securely in your workspace.</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSend}
+                        disabled={sending || (!newMessage.trim() && !uploadedFile)}
+                        className="h-10"
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send
                       </Button>
                     </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Textarea
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type your message..."
-                      className="min-h-[44px] max-h-32 resize-none"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSend();
-                        }
-                      }}
-                    />
-                    <Button
-                      size="icon"
-                      onClick={handleSend}
-                      disabled={(!newMessage.trim() && !uploadedFile) || sending}
-                      className="shrink-0"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </CardContent>
             </>
           ) : (
-            <CardContent className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-medium text-foreground">Select an assist</h3>
-                <p className="text-sm text-muted-foreground">
-                  Choose an assist from the list to start chatting
-                </p>
-              </div>
-            </CardContent>
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+              <MessageCircle className="h-10 w-10 mb-2" />
+              <p className="text-sm">Select an assist to start chatting.</p>
+            </div>
           )}
         </Card>
       </div>

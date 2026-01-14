@@ -26,29 +26,52 @@ export default function OrientationProfile() {
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Generate age options (18-65)
+  const syncOrientationSession = (data: typeof formData) => {
+    sessionStorage.setItem('orientation_firstName', data.firstName.trim());
+    sessionStorage.setItem('orientation_lastName', data.lastName.trim());
+    sessionStorage.setItem('orientation_age', data.age);
+    sessionStorage.setItem(
+      'orientation_phone',
+      `${data.phoneCode} ${data.phoneNumber}`.trim()
+    );
+    sessionStorage.setItem('orientation_country', data.country);
+    sessionStorage.setItem('orientation_city', data.city);
+  };
+
   const ageOptions = Array.from({ length: 48 }, (_, i) => (i + 18).toString());
 
-  // Fetch profile data
+  // Fetch profile data and merge with any saved orientation progress
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
-      
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Get assist ID
+        // Get assist ID (auto-generated, read-only)
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('id')
           .eq('user_id', user.id)
           .eq('role', 'assist')
           .single();
-        
+
         if (roleData) {
           const formattedId = `A${String(roleData.id).padStart(5, '0')}`;
           setAssistId(formattedId);
         }
 
-        // Get profile data
+        // Prepare base profile values
+        let firstName = '';
+        let lastName = '';
+        let age = '';
+        let phoneCode = '';
+        let phoneNumber = '';
+        let country = '';
+        let city = '';
+
+        // Get profile data from backend
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
@@ -58,13 +81,13 @@ export default function OrientationProfile() {
         if (profileData) {
           // Parse name
           const nameParts = (profileData.name || '').split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-          
+          firstName = nameParts[0] || '';
+          lastName = nameParts.slice(1).join(' ') || '';
+
           // Parse phone
           const phoneParts = (profileData.phone || '').match(/^(\+\d+)\s*(.*)$/);
-          const phoneCode = phoneParts?.[1] || '';
-          const phoneNumber = phoneParts?.[2] || '';
+          phoneCode = phoneParts?.[1] || '';
+          phoneNumber = phoneParts?.[2] || '';
 
           // Cast to get extended fields (age, country, city added via migration)
           const extendedProfile = profileData as typeof profileData & {
@@ -73,16 +96,43 @@ export default function OrientationProfile() {
             city?: string | null;
           };
 
-          setFormData({
-            firstName,
-            lastName,
-            age: extendedProfile.age?.toString() || '',
-            phoneCode,
-            phoneNumber,
-            country: extendedProfile.country || '',
-            city: extendedProfile.city || '',
-          });
+          age = extendedProfile.age?.toString() || '';
+          country = extendedProfile.country || '';
+          city = extendedProfile.city || '';
         }
+
+        // Override with any saved orientation progress in sessionStorage
+        const sessionFirstName = sessionStorage.getItem('orientation_firstName');
+        const sessionLastName = sessionStorage.getItem('orientation_lastName');
+        const sessionAge = sessionStorage.getItem('orientation_age');
+        const sessionPhone = sessionStorage.getItem('orientation_phone');
+        const sessionCountry = sessionStorage.getItem('orientation_country');
+        const sessionCity = sessionStorage.getItem('orientation_city');
+
+        if (sessionFirstName !== null) firstName = sessionFirstName;
+        if (sessionLastName !== null) lastName = sessionLastName;
+        if (sessionAge !== null) age = sessionAge;
+        if (sessionCountry !== null) country = sessionCountry;
+        if (sessionCity !== null) city = sessionCity;
+
+        if (sessionPhone) {
+          const phoneParts = sessionPhone.match(/^(\+\d+)\s*(.*)$/);
+          phoneCode = phoneParts?.[1] || phoneCode;
+          phoneNumber = phoneParts?.[2] || phoneNumber;
+        }
+
+        const mergedData = {
+          firstName,
+          lastName,
+          age,
+          phoneCode,
+          phoneNumber,
+          country,
+          city,
+        };
+
+        setFormData(mergedData);
+        syncOrientationSession(mergedData);
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
@@ -93,18 +143,31 @@ export default function OrientationProfile() {
     fetchProfile();
   }, [user]);
 
+
   // Update cities when country changes
   useEffect(() => {
     if (formData.country) {
       const countryData = countries.find((c: Country) => c.name === formData.country);
       setAvailableCities(countryData?.cities || []);
       if (countryData?.phoneCode && !formData.phoneCode) {
-        setFormData(prev => ({ ...prev, phoneCode: countryData.phoneCode, city: '' }));
+        setFormData(prev => {
+          const updated = { ...prev, phoneCode: countryData.phoneCode, city: '' };
+          syncOrientationSession(updated);
+          return updated;
+        });
       } else if (formData.city && !countryData?.cities?.includes(formData.city)) {
-        setFormData(prev => ({ ...prev, city: '' }));
+        setFormData(prev => {
+          const updated = { ...prev, city: '' };
+          syncOrientationSession(updated);
+          return updated;
+        });
+      } else {
+        // Ensure session stays in sync even if only cities list changes
+        syncOrientationSession(formData);
       }
     }
-  }, [formData.country]);
+  }, [formData.country, formData.city, formData.phoneCode, formData]);
+
 
   const isFormValid = 
     formData.firstName.trim() &&
@@ -197,7 +260,11 @@ export default function OrientationProfile() {
               <Label>Age <span className="text-destructive">*</span></Label>
               <Select
                 value={formData.age}
-                onValueChange={(value) => setFormData({ ...formData, age: value })}
+                onValueChange={(value) => {
+                  const updated = { ...formData, age: value };
+                  setFormData(updated);
+                  syncOrientationSession(updated);
+                }}
               >
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Select your age" />
@@ -213,37 +280,14 @@ export default function OrientationProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label>Phone Number <span className="text-destructive">*</span></Label>
-              <div className="flex gap-2">
-                <Select
-                  value={formData.phoneCode}
-                  onValueChange={(value) => setFormData({ ...formData, phoneCode: value })}
-                >
-                  <SelectTrigger className="w-[100px] bg-background">
-                    <SelectValue placeholder="+1" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border z-50 max-h-[300px]">
-                    {phoneCodes.map((code) => (
-                      <SelectItem key={code} value={code}>
-                        {code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="234 567 8900"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  className="flex-1"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <Label>Country <span className="text-destructive">*</span></Label>
               <Select
                 value={formData.country}
-                onValueChange={(value) => setFormData({ ...formData, country: value })}
+                onValueChange={(value) => {
+                  const updated = { ...formData, country: value };
+                  setFormData(updated);
+                  syncOrientationSession(updated);
+                }}
               >
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Select country" />
@@ -262,7 +306,11 @@ export default function OrientationProfile() {
               <Label>City <span className="text-destructive">*</span></Label>
               <Select
                 value={formData.city}
-                onValueChange={(value) => setFormData({ ...formData, city: value })}
+                onValueChange={(value) => {
+                  const updated = { ...formData, city: value };
+                  setFormData(updated);
+                  syncOrientationSession(updated);
+                }}
                 disabled={!formData.country}
               >
                 <SelectTrigger className="bg-background">
@@ -277,6 +325,42 @@ export default function OrientationProfile() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Phone Number <span className="text-destructive">*</span></Label>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.phoneCode}
+                  onValueChange={(value) => {
+                    const updated = { ...formData, phoneCode: value };
+                    setFormData(updated);
+                    syncOrientationSession(updated);
+                  }}
+                >
+                  <SelectTrigger className="w-[100px] bg-background">
+                    <SelectValue placeholder="+1" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border z-50 max-h-[300px]">
+                    {phoneCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="234 567 8900"
+                  value={formData.phoneNumber}
+                  onChange={(e) => {
+                    const updated = { ...formData, phoneNumber: e.target.value };
+                    setFormData(updated);
+                    syncOrientationSession(updated);
+                  }}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
 
             <Button
               size="lg"

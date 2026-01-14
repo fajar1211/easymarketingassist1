@@ -124,6 +124,7 @@ export default function TaskManager() {
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
   const [sortByAssist, setSortByAssist] = useState('');
   const [nextTaskNumber, setNextTaskNumber] = useState(100);
+  const [assistName, setAssistName] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -133,7 +134,6 @@ export default function TaskManager() {
     platform: '',
     clientId: '',
     deadline: '',
-    assignee: '',
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
@@ -203,7 +203,7 @@ const fetchAssistUsers = async () => {
       .select('user_id')
       .eq('role', 'assist');
 
-    const assistIds = userRoles?.map(r => r.user_id) || [];
+    const assistIds = userRoles?.map((r) => r.user_id) || [];
 
     const { data: profiles } = await supabase
       .from('profiles')
@@ -214,6 +214,14 @@ const fetchAssistUsers = async () => {
     // Sort by full name
     const sorted = (profiles || []).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     setAssistUsers(sorted);
+
+    // Set current assist full name for disabled Assignee field
+    if (user) {
+      const currentAssist = (profiles || []).find((p) => p.id === user.id);
+      if (currentAssist?.name) {
+        setAssistName(currentAssist.name);
+      }
+    }
   };
 
   const fetchWorkLogs = async (taskId: string) => {
@@ -262,7 +270,6 @@ const fetchAssistUsers = async () => {
       platform: '',
       clientId: '',
       deadline: '',
-      assignee: '',
     });
     setUploadedFile(null);
     setViewMode('list');
@@ -322,7 +329,7 @@ const fetchAssistUsers = async () => {
         description: formData.description || null,
         type: formData.type as any || null,
         platform: formData.type === 'social_media' ? formData.platform as any : null,
-        assigned_to: formData.assignee || user.id,
+        assigned_to: user.id,
         deadline: formData.deadline || null,
         file_url: fileUrl,
         notes: null,
@@ -859,21 +866,13 @@ const fetchAssistUsers = async () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assignee">Assignee</Label>
-                <Select 
-                  value={formData.assignee} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, assignee: value }))}
-                >
-                  <SelectTrigger id="assignee">
-                    <SelectValue placeholder="Select assignee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assistUsers.map((assist) => (
-                      <SelectItem key={assist.id} value={assist.id}>
-                        {assist.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="assignee"
+                  value={assistName || (user?.email ?? '')}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">Automatically assigned to you</p>
               </div>
             </div>
 

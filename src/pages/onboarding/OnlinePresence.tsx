@@ -62,7 +62,7 @@ export default function OnlinePresence() {
       // Check if business already exists
       const { data: existingBusiness } = await (supabase
         .from('businesses')
-        .select('id')
+        .select('id, business_number')
         .eq('user_id', user.id)
         .maybeSingle() as any);
 
@@ -85,25 +85,41 @@ export default function OnlinePresence() {
       };
 
       let businessError;
+      let businessNumber: number | null = existingBusiness?.business_number ?? null;
 
       if (existingBusiness) {
-        // Update existing business
-        const { error } = await (supabase
+        // Update existing and return current business_number
+        const { data: updatedBusiness, error } = await (supabase
           .from('businesses')
           .update(businessData)
-          .eq('user_id', user.id) as any);
+          .eq('user_id', user.id)
+          .select('business_number')
+          .maybeSingle() as any);
         businessError = error;
+        if (updatedBusiness?.business_number) {
+          businessNumber = updatedBusiness.business_number;
+        }
       } else {
-        // Insert new business
-        const { error } = await (supabase
+        // Insert new and get generated business_number
+        const { data: newBusiness, error } = await (supabase
           .from('businesses')
-          .insert(businessData) as any);
+          .insert(businessData)
+          .select('business_number')
+          .maybeSingle() as any);
         businessError = error;
+        if (newBusiness?.business_number) {
+          businessNumber = newBusiness.business_number;
+        }
       }
 
       if (businessError) {
         console.error('Business error:', businessError);
         throw businessError;
+      }
+
+      if (businessNumber) {
+        const formattedId = `B${businessNumber.toString().padStart(5, '0')}`;
+        sessionStorage.setItem('onboarding_businessId', formattedId);
       }
 
       // Store first/last name in sessionStorage for MyBusiness to pick up

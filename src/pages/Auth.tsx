@@ -19,7 +19,8 @@ const loginSchema = z.object({
 });
 
 const signupSchema = loginSchema.extend({
-  name: z.string().trim().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  firstName: z.string().trim().min(1, 'First name is required').max(50, 'First name must be less than 50 characters'),
+  lastName: z.string().trim().min(1, 'Last name is required').max(50, 'Last name must be less than 50 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
@@ -31,7 +32,8 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<AppRole>('user');
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -107,7 +109,13 @@ export default function Auth() {
       });
       // Navigation handled by useEffect
     } else {
-      const { error } = await signUp(formData.email, formData.password, formData.name, selectedRole);
+      const { error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName,
+        selectedRole
+      );
       if (error) {
         let message = error.message;
         if (message.includes('already registered')) {
@@ -121,6 +129,12 @@ export default function Auth() {
         setIsSubmitting(false);
         return;
       }
+
+      if (selectedRole === 'assist') {
+        sessionStorage.setItem('orientation_firstName', formData.firstName.trim());
+        sessionStorage.setItem('orientation_lastName', formData.lastName.trim());
+      }
+
       toast({
         title: 'Account created!',
         description: 'Please check your email to verify your account.',
@@ -216,16 +230,29 @@ export default function Auth() {
 
               {/* Name (signup only) */}
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={errors.name ? 'border-destructive' : ''}
-                  />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className={errors.firstName ? 'border-destructive' : ''}
+                    />
+                    {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Doe"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className={errors.lastName ? 'border-destructive' : ''}
+                    />
+                    {errors.lastName && <p className="text-sm text-destructive">{errors.lastName}</p>}
+                  </div>
                 </div>
               )}
 
@@ -297,7 +324,7 @@ export default function Auth() {
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setErrors({});
-                  setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+                  setFormData({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' });
                 }}
                 className="text-primary hover:underline font-medium"
               >

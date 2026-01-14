@@ -130,17 +130,17 @@ export default function AssistDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <Sidebar className="border-r bg-background/80 backdrop-blur-sm">
-          <div className="p-4 border-b flex items-center gap-2">
+        <Sidebar className="border-r bg-card text-card-foreground">
+          <div className="p-4 border-b flex items-center gap-2 bg-card">
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold tracking-tight text-foreground">Assist Portal</span>
+              <span className="font-semibold tracking-tight text-card-foreground">Assist Portal</span>
               <span className="text-xs text-muted-foreground">EasyMarketing Assistant</span>
             </div>
           </div>
-          <SidebarContent className="px-2 py-3">
+          <SidebarContent className="px-3 py-4">
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-1 animate-fade-in">
@@ -150,8 +150,8 @@ export default function AssistDashboard() {
                         <NavLink 
                           to={item.url} 
                           end={item.url === '/dashboard/assist'} 
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground/80 hover:bg-primary/10 hover:text-primary hover-scale transition-colors" 
-                          activeClassName="bg-primary text-primary-foreground shadow-sm"
+                          className="flex items-center gap-3 px-3 py-2 rounded-full text-sm text-card-foreground hover:bg-primary/10 hover:text-primary hover-scale transition-colors" 
+                          activeClassName="bg-primary/90 text-primary-foreground shadow-sm"
                         >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
@@ -165,8 +165,8 @@ export default function AssistDashboard() {
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to="/dashboard/assist/settings" 
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground/80 hover:bg-primary/10 hover:text-primary hover-scale transition-colors" 
-                        activeClassName="bg-primary text-primary-foreground shadow-sm"
+                        className="flex items-center gap-3 px-3 py-2 rounded-full text-sm text-card-foreground hover:bg-primary/10 hover:text-primary hover-scale transition-colors" 
+                        activeClassName="bg-primary/90 text-primary-foreground shadow-sm"
                       >
                         <Settings className="h-4 w-4" />
                         <span>Settings</span>
@@ -177,8 +177,12 @@ export default function AssistDashboard() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <div className="mt-auto p-4 border-t">
-            <Button variant="ghost" className="w-full justify-start text-sm text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors" onClick={signOut}>
+          <div className="mt-auto p-4 border-t bg-card">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-sm text-card-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+              onClick={signOut}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>

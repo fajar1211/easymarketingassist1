@@ -101,16 +101,24 @@ export default function AssistProfile() {
           phoneNumber = phoneMatch[2];
         }
 
-        // Parse location into country and city
+        // Prefer orientation/profile data (country & city) when available
+        const extendedProfile = data as typeof data & {
+          country?: string | null;
+          city?: string | null;
+        };
+
         const fullLocation = (data as any).location || '';
-        let savedCountry = '';
-        let savedCity = '';
-        if (fullLocation.includes(', ')) {
-          const parts = fullLocation.split(', ');
-          savedCity = parts[0];
-          savedCountry = parts.slice(1).join(', ');
-        } else {
-          savedCountry = fullLocation;
+        let savedCountry = extendedProfile.country || '';
+        let savedCity = extendedProfile.city || '';
+
+        if (!savedCountry) {
+          if (fullLocation.includes(', ')) {
+            const parts = fullLocation.split(', ');
+            savedCity = parts[0];
+            savedCountry = parts.slice(1).join(', ');
+          } else {
+            savedCountry = fullLocation;
+          }
         }
 
         // Parse social_links from database
@@ -333,7 +341,6 @@ export default function AssistProfile() {
             <div>
               <h3 className="font-medium text-lg">{profile.name}</h3>
               <p className="text-sm text-muted-foreground">{profile.email}</p>
-              {profile.specialization && <Badge variant="secondary" className="mt-1">{profile.specialization}</Badge>}
             </div>
           </div>
 
@@ -384,7 +391,7 @@ export default function AssistProfile() {
               )}
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-2"><MapPin className="h-4 w-4" />Location</Label>
+              <Label className="flex items-center gap-2"><MapPin className="h-4 w-4" />Country</Label>
               {isEditing ? (
                 <Select value={profile.location} onValueChange={handleCountryChange}>
                   <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
@@ -400,48 +407,9 @@ export default function AssistProfile() {
             </div>
             <div className="space-y-2">
               <Label>City</Label>
-              {isEditing ? (
-                <Select value={profile.city} onValueChange={(v) => setProfile(prev => ({ ...prev, city: v }))} disabled={!profile.location}>
-                  <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-                  <SelectContent>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>{city}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="py-2 font-medium">{profile.city || '-'}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><Briefcase className="h-4 w-4" />Specialization</Label>
-              {isEditing ? (
-                <Input value={profile.specialization} onChange={(e) => setProfile(prev => ({ ...prev, specialization: e.target.value }))} placeholder="e.g., Digital Marketing" />
-              ) : (
-                <p className="py-2 font-medium">{profile.specialization || '-'}</p>
-              )}
+              <p className="py-2 font-medium">{profile.city || '-'}</p>
             </div>
           </div>
-
-          {/* Bio & Experience */}
-          <div className="space-y-2">
-            <Label>Bio</Label>
-            {isEditing ? (
-              <Textarea value={profile.bio} onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))} rows={4} />
-            ) : (
-              <p className="py-2 text-muted-foreground">{profile.bio || 'No bio'}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>Experience</Label>
-            {isEditing ? (
-              <Textarea value={profile.experience} onChange={(e) => setProfile(prev => ({ ...prev, experience: e.target.value }))} rows={4} />
-            ) : (
-              <p className="py-2 text-muted-foreground">{profile.experience || 'No experience'}</p>
-            )}
-          </div>
-
-          {/* Skills */}
           <div className="space-y-2">
             <Label>Skills</Label>
             <div className="flex flex-wrap gap-2 mb-2">

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Save, Building2, FileText, User, Users, ArrowLeft, Pencil, X } from 'lucide-react';
+import { Save, Building2, FileText, User, Users, ArrowLeft, Pencil, X, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,7 @@ interface BusinessData {
   business_type: string;
   country: string;
   city: string;
+  business_address: string;
   website_url: string;
   gmb_link: string;
   email: string;
@@ -29,6 +30,7 @@ interface BusinessData {
   last_name: string;
   social_media_links: SocialMediaLink[];
   businessId: string;
+  hours: { day: string; opensAt: string; closesAt: string; }[];
 }
 
 interface KnowledgeBaseData {
@@ -71,6 +73,7 @@ export default function MyBusiness() {
     business_type: '',
     country: '',
     city: '',
+    business_address: '',
     website_url: '',
     gmb_link: '',
     email: '',
@@ -81,7 +84,10 @@ export default function MyBusiness() {
     last_name: '',
     social_media_links: [],
     businessId: '',
+    hours: [],
   });
+  
+  const [newHour, setNewHour] = useState({ day: '', opensAt: '', closesAt: '' });
   const [kbData, setKbData] = useState<KnowledgeBaseData>({
     bkb: '',
     brandExpert: '',
@@ -213,6 +219,7 @@ export default function MyBusiness() {
           business_type: (data as any).business_type || '',
           country: country,
           city: city,
+          business_address: (data as any).business_address || '',
           website_url: (data as any).website_url || '',
           gmb_link: (data as any).gmb_link || '',
           email: user.email || '',
@@ -223,6 +230,7 @@ export default function MyBusiness() {
           last_name: lastName,
           social_media_links: socialLinks,
           businessId,
+          hours: Array.isArray((data as any).hours) ? (data as any).hours : [],
         };
         
         setOriginalFormData(dbFormData);
@@ -324,9 +332,11 @@ export default function MyBusiness() {
           business_type: formData.business_type || null,
           country: formData.country || null,
           city: formData.city || null,
+          business_address: formData.business_address || null,
           website_url: formData.website_url, // Allow empty string
           gmb_link: formData.gmb_link || null,
           social_links: formData.social_media_links as any,
+          hours: formData.hours as any,
         })
         .eq('user_id', user.id);
 
@@ -688,8 +698,8 @@ export default function MyBusiness() {
               </div>
             </div>
 
-            {/* Country and City */}
-            <div className="grid gap-4 md:grid-cols-2">
+            {/* Country, City, and Business Address */}
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
                 <Select 
@@ -728,6 +738,16 @@ export default function MyBusiness() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_address">Business Address</Label>
+                <Input
+                  id="business_address"
+                  value={formData.business_address}
+                  onChange={(e) => setFormData({ ...formData, business_address: e.target.value })}
+                  placeholder="123 Business St"
+                  disabled={!isEditing}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -758,6 +778,87 @@ export default function MyBusiness() {
                 links={formData.social_media_links}
                 onChange={(links) => setFormData({ ...formData, social_media_links: links })}
               />
+            </div>
+
+            {/* Hours Section */}
+            <div className="space-y-4">
+              <Label>Business Hours</Label>
+              {formData.hours.length > 0 && (
+                <div className="space-y-2">
+                  {formData.hours.map((hour, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                      <span className="font-medium min-w-[100px]">{hour.day}</span>
+                      <span className="text-sm text-muted-foreground">{hour.opensAt} - {hour.closesAt}</span>
+                      {isEditing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, hours: formData.hours.filter((_, i) => i !== index) })}
+                          className="ml-auto"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {isEditing && (
+                <div className="grid gap-2 md:grid-cols-4">
+                  <Select value={newHour.day} onValueChange={(v) => setNewHour({ ...newHour, day: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Monday">Monday</SelectItem>
+                      <SelectItem value="Tuesday">Tuesday</SelectItem>
+                      <SelectItem value="Wednesday">Wednesday</SelectItem>
+                      <SelectItem value="Thursday">Thursday</SelectItem>
+                      <SelectItem value="Friday">Friday</SelectItem>
+                      <SelectItem value="Saturday">Saturday</SelectItem>
+                      <SelectItem value="Sunday">Sunday</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={newHour.opensAt} onValueChange={(v) => setNewHour({ ...newHour, opensAt: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Opens At" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {Array.from({ length: 24 }, (_, i) => i).map(hour => 
+                        ['00', '30'].map(min => {
+                          const time = `${String(hour).padStart(2, '0')}:${min}`;
+                          return <SelectItem key={time} value={time}>{time}</SelectItem>;
+                        })
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Select value={newHour.closesAt} onValueChange={(v) => setNewHour({ ...newHour, closesAt: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Closes At" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {Array.from({ length: 24 }, (_, i) => i).map(hour => 
+                        ['00', '30'].map(min => {
+                          const time = `${String(hour).padStart(2, '0')}:${min}`;
+                          return <SelectItem key={time} value={time}>{time}</SelectItem>;
+                        })
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (newHour.day && newHour.opensAt && newHour.closesAt) {
+                        setFormData({ ...formData, hours: [...formData.hours, newHour] });
+                        setNewHour({ day: '', opensAt: '', closesAt: '' });
+                      }
+                    }}
+                    disabled={!newHour.day || !newHour.opensAt || !newHour.closesAt}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />Add
+                  </Button>
+                </div>
+              )}
             </div>
 
             {isEditing && (

@@ -33,8 +33,10 @@ interface ProfileData {
   twitter_url: string;
   location: string;
   city: string;
+  business_address: string;
   specialization: string;
   social_links: SocialLink[];
+  hours: { day: string; opensAt: string; closesAt: string; }[];
 }
 
 const socialPlatforms = [
@@ -73,10 +75,13 @@ export default function AssistProfile() {
     twitter_url: '',
     location: '',
     city: '',
+    business_address: '',
     specialization: '',
     social_links: [],
+    hours: [],
   });
   const [assistId, setAssistId] = useState('');
+  const [newHour, setNewHour] = useState({ day: '', opensAt: '', closesAt: '' });
 
   const selectedCountry = countries.find(c => c.name === profile.location);
   const cities = selectedCountry?.cities || [];
@@ -142,8 +147,10 @@ export default function AssistProfile() {
           twitter_url: (data as any).twitter_url || '',
           location: savedCountry,
           city: savedCity,
+          business_address: (data as any).business_address || '',
           specialization: (data as any).specialization || '',
           social_links: savedSocialLinks,
+          hours: Array.isArray((data as any).hours) ? (data as any).hours : [],
         });
       }
 
@@ -175,8 +182,10 @@ export default function AssistProfile() {
           twitter_url: profile.twitter_url,
           country: profile.location,
           city: profile.city,
+          business_address: profile.business_address,
           avatar_url: profile.avatar_url,
           social_links: profile.social_links, // Save social media links
+          hours: profile.hours,
         } as any)
         .eq('id', user.id);
 
@@ -421,6 +430,101 @@ export default function AssistProfile() {
                 <p className="py-2 font-medium">{profile.city || '-'}</p>
               )}
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Business Address</Label>
+            {isEditing ? (
+              <Input
+                value={profile.business_address}
+                onChange={(e) => setProfile((prev) => ({ ...prev, business_address: e.target.value }))}
+                placeholder="123 Business St"
+              />
+            ) : (
+              <p className="py-2 font-medium">{profile.business_address || '-'}</p>
+            )}
+          </div>
+
+          {/* Hours Section */}
+          <div className="space-y-4">
+            <Label>Business Hours</Label>
+            {profile.hours.length > 0 && (
+              <div className="space-y-2">
+                {profile.hours.map((hour, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                    <span className="font-medium min-w-[100px]">{hour.day}</span>
+                    <span className="text-sm text-muted-foreground">{hour.opensAt} - {hour.closesAt}</span>
+                    {isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setProfile({ ...profile, hours: profile.hours.filter((_, i) => i !== index) })}
+                        className="ml-auto"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {isEditing && (
+              <div className="grid gap-2 md:grid-cols-4">
+                <Select value={newHour.day} onValueChange={(v) => setNewHour({ ...newHour, day: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Monday">Monday</SelectItem>
+                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                    <SelectItem value="Thursday">Thursday</SelectItem>
+                    <SelectItem value="Friday">Friday</SelectItem>
+                    <SelectItem value="Saturday">Saturday</SelectItem>
+                    <SelectItem value="Sunday">Sunday</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={newHour.opensAt} onValueChange={(v) => setNewHour({ ...newHour, opensAt: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Opens At" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {Array.from({ length: 24 }, (_, i) => i).map(hour => 
+                      ['00', '30'].map(min => {
+                        const time = `${String(hour).padStart(2, '0')}:${min}`;
+                        return <SelectItem key={time} value={time}>{time}</SelectItem>;
+                      })
+                    )}
+                  </SelectContent>
+                </Select>
+                <Select value={newHour.closesAt} onValueChange={(v) => setNewHour({ ...newHour, closesAt: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Closes At" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {Array.from({ length: 24 }, (_, i) => i).map(hour => 
+                      ['00', '30'].map(min => {
+                        const time = `${String(hour).padStart(2, '0')}:${min}`;
+                        return <SelectItem key={time} value={time}>{time}</SelectItem>;
+                      })
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (newHour.day && newHour.opensAt && newHour.closesAt) {
+                      setProfile({ ...profile, hours: [...profile.hours, newHour] });
+                      setNewHour({ day: '', opensAt: '', closesAt: '' });
+                    }
+                  }}
+                  disabled={!newHour.day || !newHour.opensAt || !newHour.closesAt}
+                >
+                  <Plus className="h-4 w-4 mr-2" />Add
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
           </div>
           <div className="space-y-2">
             <Label>Skills</Label>

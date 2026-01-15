@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           bkb_content: string | null
           brand_expert_content: string | null
+          business_address: string | null
           business_name: string | null
           business_number: number | null
           business_type: string | null
@@ -28,6 +29,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           gmb_link: string | null
+          hours: Json | null
           id: string
           last_name: string | null
           onboarding_completed: boolean | null
@@ -47,6 +49,7 @@ export type Database = {
         Insert: {
           bkb_content?: string | null
           brand_expert_content?: string | null
+          business_address?: string | null
           business_name?: string | null
           business_number?: number | null
           business_type?: string | null
@@ -57,6 +60,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           gmb_link?: string | null
+          hours?: Json | null
           id?: string
           last_name?: string | null
           onboarding_completed?: boolean | null
@@ -76,6 +80,7 @@ export type Database = {
         Update: {
           bkb_content?: string | null
           brand_expert_content?: string | null
+          business_address?: string | null
           business_name?: string | null
           business_number?: number | null
           business_type?: string | null
@@ -86,6 +91,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           gmb_link?: string | null
+          hours?: Json | null
           id?: string
           last_name?: string | null
           onboarding_completed?: boolean | null
@@ -249,12 +255,14 @@ export type Database = {
           age: number | null
           avatar_url: string | null
           bio: string | null
+          business_address: string | null
           business_name: string | null
           city: string | null
           country: string | null
           created_at: string | null
           email: string
           experience: string | null
+          hours: Json | null
           id: string
           linkedin_url: string | null
           name: string
@@ -271,12 +279,14 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           bio?: string | null
+          business_address?: string | null
           business_name?: string | null
           city?: string | null
           country?: string | null
           created_at?: string | null
           email: string
           experience?: string | null
+          hours?: Json | null
           id: string
           linkedin_url?: string | null
           name: string
@@ -293,12 +303,14 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           bio?: string | null
+          business_address?: string | null
           business_name?: string | null
           city?: string | null
           country?: string | null
           created_at?: string | null
           email?: string
           experience?: string | null
+          hours?: Json | null
           id?: string
           linkedin_url?: string | null
           name?: string

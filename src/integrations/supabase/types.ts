@@ -27,6 +27,7 @@ export type Database = {
           created_at: string
           creator_links: Json | null
           email: string | null
+          email_secondary: string | null
           first_name: string | null
           gmb_link: string | null
           hours: Json | null
@@ -58,6 +59,7 @@ export type Database = {
           created_at?: string
           creator_links?: Json | null
           email?: string | null
+          email_secondary?: string | null
           first_name?: string | null
           gmb_link?: string | null
           hours?: Json | null
@@ -89,6 +91,7 @@ export type Database = {
           created_at?: string
           creator_links?: Json | null
           email?: string | null
+          email_secondary?: string | null
           first_name?: string | null
           gmb_link?: string | null
           hours?: Json | null
@@ -268,6 +271,7 @@ export type Database = {
           name: string
           onboarding_completed: boolean | null
           phone: string | null
+          phone_secondary: string | null
           portfolio_url: string | null
           skills: string[] | null
           social_links: Json | null
@@ -292,6 +296,7 @@ export type Database = {
           name: string
           onboarding_completed?: boolean | null
           phone?: string | null
+          phone_secondary?: string | null
           portfolio_url?: string | null
           skills?: string[] | null
           social_links?: Json | null
@@ -316,6 +321,7 @@ export type Database = {
           name?: string
           onboarding_completed?: boolean | null
           phone?: string | null
+          phone_secondary?: string | null
           portfolio_url?: string | null
           skills?: string[] | null
           social_links?: Json | null

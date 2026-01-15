@@ -1292,9 +1292,10 @@ export default function ClientList() {
                         <SelectContent>
                           <SelectItem value="bkb">My BKB</SelectItem>
                           <SelectItem value="brandExpert">Brand Expert</SelectItem>
-                          <SelectItem value="persona1">{kbData.persona1Title}</SelectItem>
-                          <SelectItem value="persona2">{kbData.persona2Title}</SelectItem>
-                          <SelectItem value="persona3">{kbData.persona3Title}</SelectItem>
+                          {/* Keep labels stable even if persona titles change */}
+                          <SelectItem value="persona1">Persona 1</SelectItem>
+                          <SelectItem value="persona2">Persona 2</SelectItem>
+                          <SelectItem value="persona3">Persona 3</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1374,12 +1375,12 @@ export default function ClientList() {
                     
                     {['persona1', 'persona2', 'persona3'].includes(kbViewMode) && (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
                             <Input
                               value={kbData[`${kbViewMode}Title` as keyof KnowledgeBaseData]}
                               onChange={(e) => handlePersonaTitleChange(`${kbViewMode}Title` as any, e.target.value)}
-                              className="w-48 font-semibold"
+                              className="w-full font-semibold"
                             />
                           </div>
                           <div className="flex gap-2">

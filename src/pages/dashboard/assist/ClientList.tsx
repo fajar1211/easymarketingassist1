@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { 
+import {
   Eye, ArrowLeft, Building2, BookOpen, Image, FileText, Package, Settings,
   Copy, Save, Pencil, ImageIcon, Video, FileIcon, Upload, Trash2, Grid, List,
   User, Lock, Mail, ExternalLink, EyeOff, X, Plus, Check
@@ -189,6 +191,10 @@ export default function ClientList() {
   // Gallery state
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [galleryViewMode, setGalleryViewMode] = useState<'grid' | 'list'>('grid');
+  const [galleryFilter, setGalleryFilter] = useState<'all' | 'image' | 'video' | 'file'>('all');
+  const [galleryPreviewItem, setGalleryPreviewItem] = useState<GalleryItem | null>(null);
+  const [galleryPreviewText, setGalleryPreviewText] = useState<string>('');
+  const [galleryPreviewTextLoading, setGalleryPreviewTextLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   
   // Package state
@@ -732,6 +738,41 @@ export default function ClientList() {
       description: 'URL copied to clipboard.',
     });
   };
+
+  useEffect(() => {
+    const item = galleryPreviewItem;
+    if (!item) {
+      setGalleryPreviewText('');
+      setGalleryPreviewTextLoading(false);
+      return;
+    }
+
+    const ext = item.name.split('.').pop()?.toLowerCase() || '';
+    const isText = ['txt', 'md', 'csv', 'json', 'log'].includes(ext);
+
+    if (!isText) {
+      setGalleryPreviewText('');
+      setGalleryPreviewTextLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setGalleryPreviewTextLoading(true);
+        const res = await fetch(item.url, { signal: controller.signal });
+        const text = await res.text();
+        setGalleryPreviewText(text);
+      } catch {
+        setGalleryPreviewText('');
+      } finally {
+        setGalleryPreviewTextLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [galleryPreviewItem]);
 
   const formatSize = (bytes: number | null) => {
     if (!bytes) return 'Unknown';
@@ -1409,90 +1450,226 @@ export default function ClientList() {
               <TabsContent value="gallery" className="mt-6">
                 <Card>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <CardTitle>Client Gallery</CardTitle>
                         <CardDescription>Media files for this client</CardDescription>
                       </div>
-                      <div className="flex gap-2">
-                        <div className="flex border rounded-lg">
-                          <Button variant={galleryViewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setGalleryViewMode('grid')}>
-                            <Grid className="h-4 w-4" />
+
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Tabs value={galleryFilter} onValueChange={(v) => setGalleryFilter(v as any)}>
+                          <TabsList>
+                            <TabsTrigger value="all">All</TabsTrigger>
+                            <TabsTrigger value="image">Images</TabsTrigger>
+                            <TabsTrigger value="video">Videos</TabsTrigger>
+                            <TabsTrigger value="file">Files</TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+
+                        <div className="flex gap-2">
+                          <div className="flex border rounded-lg">
+                            <Button
+                              variant={galleryViewMode === 'grid' ? 'secondary' : 'ghost'}
+                              size="icon"
+                              onClick={() => setGalleryViewMode('grid')}
+                            >
+                              <Grid className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant={galleryViewMode === 'list' ? 'secondary' : 'ghost'}
+                              size="icon"
+                              onClick={() => setGalleryViewMode('list')}
+                            >
+                              <List className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                            <Upload className="h-4 w-4 mr-2" />
+                            {uploading ? 'Uploading...' : 'Upload'}
                           </Button>
-                          <Button variant={galleryViewMode === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setGalleryViewMode('list')}>
-                            <List className="h-4 w-4" />
-                          </Button>
+
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+                            onChange={handleUpload}
+                            className="hidden"
+                          />
                         </div>
-                        <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                          <Upload className="h-4 w-4 mr-2" />
-                          {uploading ? 'Uploading...' : 'Upload'}
-                        </Button>
-                        <input ref={fileInputRef} type="file" multiple onChange={handleUpload} className="hidden" />
                       </div>
                     </div>
                   </CardHeader>
+
                   <CardContent>
-                    {gallery.length === 0 ? (
-                      <div className="text-center py-12">
-                        <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="font-medium">No files yet</h3>
-                        <p className="text-muted-foreground text-sm">Upload files for this client</p>
-                      </div>
-                    ) : galleryViewMode === 'grid' ? (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {gallery.map((item) => (
-                          <div key={item.id} className="group relative aspect-square bg-muted rounded-lg overflow-hidden">
-                            {item.type === 'image' ? (
-                              <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                {getIcon(item.type)}
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <Button variant="secondary" size="icon" onClick={() => handleCopyUrl(item.url)}>
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button variant="destructive" size="icon" onClick={() => handleDeleteGallery(item)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                    {(() => {
+                      const filteredGallery = gallery.filter((item) => {
+                        if (galleryFilter === 'all') return true;
+                        return item.type === galleryFilter;
+                      });
+
+                      if (filteredGallery.length === 0) {
+                        return (
+                          <div className="text-center py-12">
+                            <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="font-medium">No files</h3>
+                            <p className="text-muted-foreground text-sm">
+                              {gallery.length === 0 ? 'Upload files for this client' : 'No files match this filter'}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Size</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {gallery.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-medium">{item.name}</TableCell>
-                              <TableCell><Badge variant="outline">{item.type}</Badge></TableCell>
-                              <TableCell>{formatSize(item.size)}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button variant="ghost" size="icon" onClick={() => handleCopyUrl(item.url)}>
+                        );
+                      }
+
+                      if (galleryViewMode === 'grid') {
+                        return (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {filteredGallery.map((item) => (
+                              <div key={item.id} className="group relative aspect-square bg-muted rounded-lg overflow-hidden">
+                                {item.type === 'image' ? (
+                                  <img src={item.url} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                                ) : item.type === 'video' ? (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Video className="h-6 w-6" />
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    {getIcon(item.type)}
+                                  </div>
+                                )}
+
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <Button variant="secondary" size="icon" onClick={() => setGalleryPreviewItem(item)}>
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="secondary" size="icon" onClick={() => handleCopyUrl(item.url)}>
                                     <Copy className="h-4 w-4" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteGallery(item)}>
+                                  <Button variant="destructive" size="icon" onClick={() => handleDeleteGallery(item)}>
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
-                              </TableCell>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Size</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
+                          </TableHeader>
+                          <TableBody>
+                            {filteredGallery.map((item) => (
+                              <TableRow key={item.id}>
+                                <TableCell className="font-medium">{item.name}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{item.type}</Badge>
+                                </TableCell>
+                                <TableCell>{formatSize(item.size)}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="icon" onClick={() => setGalleryPreviewItem(item)}>
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleCopyUrl(item.url)}>
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteGallery(item)}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
+
+                <Dialog open={!!galleryPreviewItem} onOpenChange={(open) => !open && setGalleryPreviewItem(null)}>
+                  <DialogContent className="max-w-6xl h-[85vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center justify-between gap-3">
+                        <span className="truncate">{galleryPreviewItem?.name}</span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => galleryPreviewItem && handleCopyUrl(galleryPreviewItem.url)}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy URL
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => setGalleryPreviewItem(null)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="flex-1 min-h-0">
+                      {(() => {
+                        const item = galleryPreviewItem;
+                        if (!item) return null;
+
+                        const ext = item.name.split('.').pop()?.toLowerCase() || '';
+                        const isPdf = ext === 'pdf';
+                        const isText = ['txt', 'md', 'csv', 'json', 'log'].includes(ext);
+
+                        if (item.type === 'image') {
+                          return (
+                            <ScrollArea className="h-full">
+                              <div className="p-2">
+                                <img src={item.url} alt={item.name} className="w-full h-auto rounded-lg" />
+                              </div>
+                            </ScrollArea>
+                          );
+                        }
+
+                        if (item.type === 'video') {
+                          return (
+                            <video src={item.url} controls className="w-full h-full rounded-lg bg-muted" />
+                          );
+                        }
+
+                        if (isPdf) {
+                          return (
+                            <iframe title={item.name} src={item.url} className="w-full h-full rounded-lg bg-muted" />
+                          );
+                        }
+
+                        if (isText) {
+                          return (
+                            <ScrollArea className="h-full rounded-lg border">
+                              <pre className="p-4 text-sm whitespace-pre-wrap break-words">
+                                {galleryPreviewTextLoading ? 'Loading...' : (galleryPreviewText || 'Unable to preview this text file.')}
+                              </pre>
+                            </ScrollArea>
+                          );
+                        }
+
+                        return (
+                          <div className="h-full rounded-lg bg-muted flex flex-col items-center justify-center gap-3 p-6 text-center">
+                            <FileIcon className="h-12 w-12 text-muted-foreground" />
+                            <p className="text-muted-foreground">Preview not available for this file type.</p>
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                              Open file in new tab
+                            </a>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </TabsContent>
 
               {/* Reports Tab */}

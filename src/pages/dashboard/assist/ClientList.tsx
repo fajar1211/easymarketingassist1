@@ -771,6 +771,13 @@ export default function ClientList() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Business ID - Full Row */}
+                    <div className="space-y-2">
+                      <Label>Business ID</Label>
+                      <p className="font-medium py-2 font-mono text-xs">{selectedClient.business_id || '-'}</p>
+                    </div>
+
+                    {/* First Name + Last Name */}
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label>First Name</Label>
@@ -794,6 +801,43 @@ export default function ClientList() {
                           <p className="font-medium py-2">{formData.last_name || '-'}</p>
                         )}
                       </div>
+                    </div>
+
+                    {/* Email + Phone Number */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <p className="font-medium py-2">{formData.email || '-'}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone Number</Label>
+                        {isEditingBusiness ? (
+                          <div className="flex gap-2">
+                            <Select value={formData.phoneCode} onValueChange={(v) => setFormData(prev => ({ ...prev, phoneCode: v }))}>
+                              <SelectTrigger className="w-28">
+                                <SelectValue placeholder="Code" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {phoneCodes.map((code) => (
+                                  <SelectItem key={code} value={code}>{code}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              value={formData.phoneNumber}
+                              onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                              placeholder="Phone number"
+                              className="flex-1"
+                            />
+                          </div>
+                        ) : (
+                          <p className="font-medium py-2">{formData.phone || '-'}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Business Name + Business Type */}
+                    <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label>Business Name</Label>
                         {isEditingBusiness ? (
@@ -827,6 +871,10 @@ export default function ClientList() {
                           <p className="font-medium py-2">{formData.business_type || '-'}</p>
                         )}
                       </div>
+                    </div>
+
+                    {/* Country + City */}
+                    <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label>Country</Label>
                         {isEditingBusiness ? (
@@ -861,34 +909,109 @@ export default function ClientList() {
                           <p className="font-medium py-2">{formData.city || '-'}</p>
                         )}
                       </div>
+                    </div>
+
+                    {/* Business Address + Business Hours */}
+                    <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label>Phone</Label>
+                        <Label htmlFor="business_address">Business Address</Label>
                         {isEditingBusiness ? (
-                          <div className="flex gap-2">
-                            <Select value={formData.phoneCode} onValueChange={(v) => setFormData(prev => ({ ...prev, phoneCode: v }))}>
-                              <SelectTrigger className="w-28">
-                                <SelectValue placeholder="Code" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {phoneCodes.map((code) => (
-                                  <SelectItem key={code} value={code}>{code}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              value={formData.phoneNumber}
-                              onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                              placeholder="Phone number"
-                              className="flex-1"
-                            />
-                          </div>
+                          <Input
+                            id="business_address"
+                            value={formData.business_address}
+                            onChange={(e) => setFormData(prev => ({ ...prev, business_address: e.target.value }))}
+                            placeholder="123 Business St"
+                          />
                         ) : (
-                          <p className="font-medium py-2">{formData.phone || '-'}</p>
+                          <p className="font-medium py-2">{formData.business_address || '-'}</p>
                         )}
                       </div>
+                      
                       <div className="space-y-2">
-                        <Label>Email</Label>
-                        <p className="font-medium py-2">{formData.email || '-'}</p>
+                        <Label>Business Hours</Label>
+                        {formData.hours.length > 0 && (
+                          <div className="space-y-1 mb-2">
+                            {formData.hours.map((hour, index) => (
+                              <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs">
+                                <span className="font-medium min-w-[70px]">{hour.day}</span>
+                                <span className="text-muted-foreground">{hour.opensAt} - {hour.closesAt}</span>
+                                {isEditingBusiness && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setFormData({ ...formData, hours: formData.hours.filter((_, i) => i !== index) })}
+                                    className="ml-auto h-6 w-6 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {!isEditingBusiness && formData.hours.length === 0 && (
+                          <p className="font-medium py-2">-</p>
+                        )}
+                        {isEditingBusiness && (
+                          <div className="flex gap-1">
+                            <Select value={newHour.day} onValueChange={(v) => setNewHour({ ...newHour, day: v })}>
+                              <SelectTrigger className="text-xs">
+                                <SelectValue placeholder="Day" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Monday">Mon</SelectItem>
+                                <SelectItem value="Tuesday">Tue</SelectItem>
+                                <SelectItem value="Wednesday">Wed</SelectItem>
+                                <SelectItem value="Thursday">Thu</SelectItem>
+                                <SelectItem value="Friday">Fri</SelectItem>
+                                <SelectItem value="Saturday">Sat</SelectItem>
+                                <SelectItem value="Sunday">Sun</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select value={newHour.opensAt} onValueChange={(v) => setNewHour({ ...newHour, opensAt: v })}>
+                              <SelectTrigger className="text-xs">
+                                <SelectValue placeholder="Opens" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {Array.from({ length: 24 }, (_, i) => i).map(hour => 
+                                  ['00', '30'].map(min => {
+                                    const time = `${String(hour).padStart(2, '0')}:${min}`;
+                                    return <SelectItem key={time} value={time}>{time}</SelectItem>;
+                                  })
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Select value={newHour.closesAt} onValueChange={(v) => setNewHour({ ...newHour, closesAt: v })}>
+                              <SelectTrigger className="text-xs">
+                                <SelectValue placeholder="Closes" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {Array.from({ length: 24 }, (_, i) => i).map(hour => 
+                                  ['00', '30'].map(min => {
+                                    const time = `${String(hour).padStart(2, '0')}:${min}`;
+                                    return <SelectItem key={time} value={time}>{time}</SelectItem>;
+                                  })
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (newHour.day && newHour.opensAt && newHour.closesAt) {
+                                  setFormData({ 
+                                    ...formData, 
+                                    hours: [...formData.hours, { day: newHour.day, opensAt: newHour.opensAt, closesAt: newHour.closesAt }] 
+                                  });
+                                  setNewHour({ day: 'Monday', opensAt: '09:00', closesAt: '17:00' });
+                                }
+                              }}
+                              className="h-8 text-xs px-2"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
 

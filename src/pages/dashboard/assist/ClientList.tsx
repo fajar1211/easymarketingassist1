@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Eye, ArrowLeft, Building2, BookOpen, Image, FileText, Package, Settings,
   Copy, Save, Pencil, ImageIcon, Video, FileIcon, Upload, Trash2, Grid, List,
-  User, Lock, Mail, ExternalLink, EyeOff, X, Plus
+  User, Lock, Mail, ExternalLink, EyeOff, X, Plus, Check
 } from 'lucide-react';
 import { RichTextEditor } from '@/components/dashboard/RichTextEditor';
 import { SocialMediaInput, SocialMediaLink } from '@/components/dashboard/SocialMediaInput';
@@ -1305,20 +1305,15 @@ export default function ClientList() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">My BKB (Business Knowledge Base)</h3>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleCopyContent(kbData.bkb)}>
-                              <Copy className="h-4 w-4 mr-2" />Copy
+                          {kbEditingState.bkb ? (
+                            <Button size="sm" onClick={() => handleSaveKB('bkb')} disabled={savingKB}>
+                              <Check className="h-4 w-4 mr-2" />{savingKB ? 'Saving...' : 'Done'}
                             </Button>
-                            {kbEditingState.bkb ? (
-                              <Button size="sm" onClick={() => handleSaveKB('bkb')} disabled={savingKB}>
-                                <Save className="h-4 w-4 mr-2" />{savingKB ? 'Saving...' : 'Save'}
-                              </Button>
-                            ) : (
-                              <Button size="sm" onClick={() => setKbEditingState(prev => ({ ...prev, bkb: true }))}>
-                                <Pencil className="h-4 w-4 mr-2" />Edit
-                              </Button>
-                            )}
-                          </div>
+                          ) : (
+                            <Button size="sm" onClick={() => setKbEditingState(prev => ({ ...prev, bkb: true }))}>
+                              <Pencil className="h-4 w-4 mr-2" />Edit
+                            </Button>
+                          )}
                         </div>
                         {kbEditingState.bkb ? (
                           <RichTextEditor
@@ -1341,20 +1336,15 @@ export default function ClientList() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">Brand Expert</h3>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleCopyContent(kbData.brandExpert)}>
-                              <Copy className="h-4 w-4 mr-2" />Copy
+                          {kbEditingState.brandExpert ? (
+                            <Button size="sm" onClick={() => handleSaveKB('brandExpert')} disabled={savingKB}>
+                              <Check className="h-4 w-4 mr-2" />{savingKB ? 'Saving...' : 'Done'}
                             </Button>
-                            {kbEditingState.brandExpert ? (
-                              <Button size="sm" onClick={() => handleSaveKB('brandExpert')} disabled={savingKB}>
-                                <Save className="h-4 w-4 mr-2" />{savingKB ? 'Saving...' : 'Save'}
-                              </Button>
-                            ) : (
-                              <Button size="sm" onClick={() => setKbEditingState(prev => ({ ...prev, brandExpert: true }))}>
-                                <Pencil className="h-4 w-4 mr-2" />Edit
-                              </Button>
-                            )}
-                          </div>
+                          ) : (
+                            <Button size="sm" onClick={() => setKbEditingState(prev => ({ ...prev, brandExpert: true }))}>
+                              <Pencil className="h-4 w-4 mr-2" />Edit
+                            </Button>
+                          )}
                         </div>
                         {kbEditingState.brandExpert ? (
                           <RichTextEditor
@@ -1384,12 +1374,9 @@ export default function ClientList() {
                             />
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleCopyContent(kbData[kbViewMode as keyof KnowledgeBaseData])}>
-                              <Copy className="h-4 w-4 mr-2" />Copy
-                            </Button>
                             {kbEditingState[kbViewMode as keyof KBEditingState] ? (
                               <Button size="sm" onClick={() => handleSaveKB(kbViewMode as keyof KnowledgeBaseData)} disabled={savingKB}>
-                                <Save className="h-4 w-4 mr-2" />{savingKB ? 'Saving...' : 'Save'}
+                                <Check className="h-4 w-4 mr-2" />{savingKB ? 'Saving...' : 'Done'}
                               </Button>
                             ) : (
                               <Button size="sm" onClick={() => setKbEditingState(prev => ({ ...prev, [kbViewMode]: true }))}>

@@ -24,9 +24,13 @@ interface BusinessData {
   website_url: string;
   gmb_link: string;
   email: string;
+  email_secondary: string;
   phone: string;
   phoneCode: string;
   phoneNumber: string;
+  phone_secondary: string;
+  phoneSecondaryCode: string;
+  phoneSecondaryNumber: string;
   first_name: string;
   last_name: string;
   social_media_links: SocialMediaLink[];
@@ -64,6 +68,8 @@ export default function MyBusiness() {
   const [savingKB, setSavingKB] = useState(false);
   const [currentView, setCurrentView] = useState<'details' | 'knowledge-base'>('details');
   const [isEditing, setIsEditing] = useState(false);
+  const [showEmailSecondary, setShowEmailSecondary] = useState(false);
+  const [showPhoneSecondary, setShowPhoneSecondary] = useState(false);
   
   // Original data from database (to restore on cancel)
   const [originalFormData, setOriginalFormData] = useState<BusinessData | null>(null);
@@ -78,9 +84,13 @@ export default function MyBusiness() {
     website_url: '',
     gmb_link: '',
     email: '',
+    email_secondary: '',
     phone: '',
     phoneCode: '',
     phoneNumber: '',
+    phone_secondary: '',
+    phoneSecondaryCode: '',
+    phoneSecondaryNumber: '',
     first_name: '',
     last_name: '',
     social_media_links: [],
@@ -110,6 +120,14 @@ export default function MyBusiness() {
   const selectedCountry = countries.find(c => c.name === formData.country);
   const cities = selectedCountry?.cities || [];
   const phoneCodes = [...new Set(countries.map(c => c.phoneCode))].sort();
+
+  // Keep secondary field visibility in sync with loaded data (but don't override while editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setShowEmailSecondary(!!formData.email_secondary);
+      setShowPhoneSecondary(!!formData.phoneSecondaryNumber);
+    }
+  }, [isEditing, formData.email_secondary, formData.phoneSecondaryNumber]);
 
   // Load draft from localStorage on mount
   useEffect(() => {
@@ -174,7 +192,7 @@ export default function MyBusiness() {
       // Fetch profile for phone number
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('phone, name')
+        .select('phone, phone_secondary, name')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -199,12 +217,23 @@ export default function MyBusiness() {
         const fullPhone = profileData?.phone || '';
         let phoneCode = '';
         let phoneNumber = fullPhone;
-        
+
         // Try to extract phone code
         const phoneMatch = fullPhone.match(/^(\+\d+)\s*(.*)$/);
         if (phoneMatch) {
           phoneCode = phoneMatch[1];
           phoneNumber = phoneMatch[2];
+        }
+
+        // Parse secondary phone into code and number
+        const fullPhoneSecondary = (profileData as any)?.phone_secondary || '';
+        let phoneSecondaryCode = '';
+        let phoneSecondaryNumber = fullPhoneSecondary;
+
+        const phoneSecondaryMatch = fullPhoneSecondary.match(/^(\+\d+)\s*(.*)$/);
+        if (phoneSecondaryMatch) {
+          phoneSecondaryCode = phoneSecondaryMatch[1];
+          phoneSecondaryNumber = phoneSecondaryMatch[2];
         }
 
         // Parse name into first and last
@@ -223,10 +252,14 @@ export default function MyBusiness() {
           business_address: (data as any).business_address || '',
           website_url: (data as any).website_url || '',
           gmb_link: (data as any).gmb_link || '',
-          email: user.email || '',
+          email: (data as any).email || user.email || '',
+          email_secondary: (data as any).email_secondary || '',
           phone: fullPhone,
           phoneCode: phoneCode,
           phoneNumber: phoneNumber,
+          phone_secondary: fullPhoneSecondary,
+          phoneSecondaryCode,
+          phoneSecondaryNumber,
           first_name: firstName,
           last_name: lastName,
           social_media_links: socialLinks,
@@ -274,9 +307,13 @@ export default function MyBusiness() {
           });
         }
       } else {
-        const defaultData = {
+        const defaultData: BusinessData = {
           ...formData,
           email: user.email || '',
+          email_secondary: '',
+          phone_secondary: '',
+          phoneSecondaryCode: '',
+          phoneSecondaryNumber: '',
           first_name: syncFirstName || '',
           last_name: syncLastName || '',
           businessId: formData.businessId || '',
@@ -325,6 +362,9 @@ export default function MyBusiness() {
         : formData.country || formData.city || null;
 
       const fullPhone = `${formData.phoneCode} ${formData.phoneNumber}`.trim();
+      const fullPhoneSecondary = formData.phoneSecondaryNumber
+        ? `${formData.phoneSecondaryCode || formData.phoneCode} ${formData.phoneSecondaryNumber}`.trim()
+        : '';
 
       // Filter out empty URLs before saving
       const validSocialLinks = formData.social_media_links.filter(link => link.url && link.url.trim() !== '');
@@ -339,6 +379,8 @@ export default function MyBusiness() {
           business_address: formData.business_address || null,
           website_url: formData.website_url, // Allow empty string
           gmb_link: formData.gmb_link || null,
+          email: formData.email || null,
+          email_secondary: formData.email_secondary || null,
           social_links: validSocialLinks as any,
           hours: formData.hours as any,
         })
@@ -352,6 +394,7 @@ export default function MyBusiness() {
         .update({
           name: `${formData.first_name} ${formData.last_name}`.trim(),
           phone: fullPhone || null,
+          phone_secondary: fullPhoneSecondary || null,
         })
         .eq('id', user.id);
 
@@ -620,7 +663,29 @@ export default function MyBusiness() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email">Email</Label>
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (showEmailSecondary) {
+                          setShowEmailSecondary(false);
+                          setFormData(prev => ({ ...prev, email_secondary: '' }));
+                        } else {
+                          setShowEmailSecondary(true);
+                        }
+                      }}
+                      aria-label={showEmailSecondary ? 'Remove secondary email' : 'Add secondary email'}
+                    >
+                      {showEmailSecondary ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
+
                 <Input
                   id="email"
                   type="email"
@@ -629,9 +694,55 @@ export default function MyBusiness() {
                   placeholder="john@example.com"
                   disabled={!isEditing}
                 />
+
+                {showEmailSecondary && (
+                  <div className="space-y-2 pt-2">
+                    <Label htmlFor="email_secondary">Email Secondary</Label>
+                    <Input
+                      id="email_secondary"
+                      type="email"
+                      value={formData.email_secondary}
+                      onChange={(e) => setFormData({ ...formData, email_secondary: e.target.value })}
+                      placeholder="john.secondary@example.com"
+                      disabled={!isEditing}
+                    />
+                  </div>
+                )}
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (showPhoneSecondary) {
+                          setShowPhoneSecondary(false);
+                          setFormData(prev => ({
+                            ...prev,
+                            phone_secondary: '',
+                            phoneSecondaryCode: '',
+                            phoneSecondaryNumber: '',
+                          }));
+                        } else {
+                          setShowPhoneSecondary(true);
+                          setFormData(prev => ({
+                            ...prev,
+                            phoneSecondaryCode: prev.phoneSecondaryCode || prev.phoneCode,
+                          }));
+                        }
+                      }}
+                      aria-label={showPhoneSecondary ? 'Remove secondary phone number' : 'Add secondary phone number'}
+                    >
+                      {showPhoneSecondary ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Select 
                     value={formData.phoneCode} 
@@ -659,6 +770,39 @@ export default function MyBusiness() {
                     className="flex-1"
                   />
                 </div>
+
+                {showPhoneSecondary && (
+                  <div className="space-y-2 pt-2">
+                    <Label htmlFor="phone_secondary">Phone Number Secondary</Label>
+                    <div className="flex gap-2">
+                      <Select 
+                        value={formData.phoneSecondaryCode} 
+                        onValueChange={(value) => setFormData({ ...formData, phoneSecondaryCode: value })}
+                        disabled={!isEditing}
+                      >
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder={formData.phoneCode || '+1'} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border border-border max-h-60 z-50">
+                          {phoneCodes.map((code) => (
+                            <SelectItem key={code} value={code}>
+                              {code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        id="phone_secondary"
+                        type="tel"
+                        value={formData.phoneSecondaryNumber}
+                        onChange={(e) => setFormData({ ...formData, phoneSecondaryNumber: e.target.value })}
+                        placeholder="234 567 8900"
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
